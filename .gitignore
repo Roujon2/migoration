@@ -1,0 +1,5 @@
+# Anything in migrations dir
+migrations/
+
+# Ignore config file
+migoration.yaml
