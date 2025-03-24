@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,31 +13,56 @@ import (
 )
 
 // Struct representing a database migration
-type Migration struct{
-	Version string `json:"version"`
-	Name string `json:"name"`
-	UpFile string `json:"up_file"`
+type Migration struct {
+	Version  string `json:"version"`
+	Name     string `json:"name"`
+	UpFile   string `json:"up_file"`
 	DownFile string `json:"down_file"`
-	IsApplied bool `json:"is_applied"`
-	AppliedAt time.Time `json:"applied_at"`
+}
+
+// ------------------------------ IMPLEMENT SORT INTERFACE ------------------------------
+type Migrations []Migration
+
+// Len
+func (m Migrations) Len() int {
+	return len(m)
+}
+
+// Less
+func (m Migrations) Less(i, j int) bool {
+	// Convert version from string to int
+	v1, err := strconv.Atoi(m[i].Version)
+	if err != nil {
+		return false
+	}
+	v2, err := strconv.Atoi(m[j].Version)
+	if err != nil {
+		return false
+	}
+
+	return v1 < v2
+}
+
+// Swap
+func (m Migrations) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
 // Set up the migrations version table in the database
 func setupVersionTable(conn *pgx.Conn) error {
 	// Create the migrations table
-	_, err := conn.Exec(context.Background(),`
+	_, err := conn.Exec(context.Background(), `
 		CREATE TABLE IF NOT EXISTS migoration_version (
 			version VARCHAR(255) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
 			applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 			);`)
-	
+
 	return err
 }
 
-
 // Apply a single migration
-func applyMigration(conn *pgx.Conn, migration *Migration, direction string) error {
+func applyMigration(conn *pgx.Conn, migration *Migration, direction string, previousVersion *Migration) error {
 	ctx := context.Background()
 
 	// Determine file and direction to use
@@ -68,20 +94,33 @@ func applyMigration(conn *pgx.Conn, migration *Migration, direction string) erro
 		return fmt.Errorf("error executing migration file '%s': %v", filePath, err)
 	}
 
-	// Update the version table by removing any existing row and adding the current one
-	if _, err := conn.Exec(ctx, "DELETE FROM migoration_version WHERE version = $1", migration.Version); err != nil {
-		return fmt.Errorf("error deleting old migration version '%s': %v", migration.Version, err)
-	}
-	if _, err := conn.Exec(ctx, "INSERT INTO migoration_version (version, name) VALUES ($1, $2)", migration.Version, migration.Name); err != nil {
-		return fmt.Errorf("error updating migration version '%s': %v", migration.Version, err)
+	if direction == "up" {
+		// Update the version table by removing any existing row and adding the current one
+		if _, err := conn.Exec(ctx, "DELETE FROM migoration_version WHERE version = $1", migration.Version); err != nil {
+			return fmt.Errorf("error deleting old migration version '%s': %v", migration.Version, err)
+		}
+		if _, err := conn.Exec(ctx, "INSERT INTO migoration_version (version, name) VALUES ($1, $2)", migration.Version, migration.Name); err != nil {
+			return fmt.Errorf("error updating migration version '%s': %v", migration.Version, err)
+		}
+	} else if direction == "down" {
+		// Update the version table by removing the current row and adding the previous one
+		if _, err := conn.Exec(ctx, "DELETE FROM migoration_version WHERE version = $1", migration.Version); err != nil {
+			return fmt.Errorf("error deleting old migration version '%s': %v", migration.Version, err)
+		}
+		// If previous version is nil, assume we're at base
+		if previousVersion == nil {
+			return nil
+		}
+		if _, err := conn.Exec(ctx, "INSERT INTO migoration_version (version, name) VALUES ($1, $2)", previousVersion.Version, previousVersion.Name); err != nil {
+			return fmt.Errorf("error updating migration version '%s': %v", previousVersion.Version, err)
+		}
 	}
 
 	return nil
 }
 
-
 // Retrieve all migrations from the migrations directory in order
-func getMigrations(migrationsDir string) ([]*Migration, error) {
+func getMigrations(migrationsDir string) (Migrations, error) {
 	// Get all files in the migrations directory
 	files, err := os.ReadDir(migrationsDir)
 	if err != nil {
@@ -89,7 +128,7 @@ func getMigrations(migrationsDir string) ([]*Migration, error) {
 	}
 
 	// Create an empty slice of migrations
-	migrations := []*Migration{}
+	migrations := Migrations{}
 
 	// Loop through the files
 	for _, file := range files {
@@ -112,10 +151,10 @@ func getMigrations(migrationsDir string) ([]*Migration, error) {
 		}
 
 		// Create a new migration
-		migration := &Migration{
-			Version: parts[0],
-			Name: strings.Join(parts[1:len(parts)-1], "_"),
-			UpFile: migrationsDir + "/" + fileName,
+		migration := Migration{
+			Version:  parts[0],
+			Name:     strings.Join(parts[1:len(parts)-1], "_"),
+			UpFile:   migrationsDir + "/" + fileName,
 			DownFile: migrationsDir + "/" + strings.Join(parts[0:len(parts)-1], "_") + "_down.sql",
 		}
 

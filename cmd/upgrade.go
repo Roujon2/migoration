@@ -15,7 +15,7 @@ import (
 var UpgradeCmd = &cobra.Command{
 	Use:   "upgrade [target]",
 	Short: "Run database migrations to a specific target",
-	Long:  `Run database migrations to a specific target version. The target version is the number of steps or 'heads' to migrate to.`,
+	Long:  `Run database migrations to a specific target version. The target version is the number of steps or 'head' to migrate to.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		target := args[0]
@@ -29,9 +29,9 @@ func init() {
 
 // Run the migoration upgrade
 func runUpgrade(target string) {
-	// Validate the target
-	if target == "" {
-		fmt.Printf("Error: No target version specified\n")
+	// Check if it's a positive number
+	if _, err := strconv.Atoi(target); err != nil && target != "head" {
+		fmt.Printf("Error: Target must be a positive number or 'head'\n")
 		return
 	}
 
@@ -88,7 +88,7 @@ func runUpgrade(target string) {
 	}
 
 	// Slice the migrations to apply
-	var migrationsToApply []*Migration
+	var migrationsToApply Migrations
 	if target == "head" {
 		migrationsToApply = migrations[currentIndex:]
 	} else {
@@ -107,7 +107,7 @@ func runUpgrade(target string) {
 
 	// Apply the migrations
 	for _, migration := range migrationsToApply {
-		err := applyMigration(db, migration, "up")
+		err := applyMigration(db, &migration, "up", nil)
 		if err != nil {
 			fmt.Printf("Error applying migration '%s': %v\n", migration.Version, err)
 			return

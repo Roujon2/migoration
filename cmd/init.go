@@ -10,9 +10,9 @@ import (
 
 // Init is the command to initialize a new migration project
 var InitCmd = &cobra.Command{
-	Use:  "init",
+	Use:   "init",
 	Short: "Initialize a new migoration project",
-	Long: `Initialize a new migoration project in the current directory and create a new configuration file for managing database migrations.`,
+	Long:  `Initialize a new migoration project in the current directory and create a new configuration file for managing database migrations.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Call init migration
 		initMigration()
@@ -55,11 +55,10 @@ func initMigration() {
 
 }
 
-
 // Function to create the config file info
 func createConfig() string {
 	config := `# Migoration configuration file
-# Modify ${ENV_VAR} placeholders with actual environment variables
+# Modify ${ENV_VAR} placeholders with actual environment variables or hardcode the values
 database_url: ${DATABASE_URL}
 migration_path: migrations`
 
