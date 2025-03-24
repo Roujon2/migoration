@@ -13,9 +13,10 @@ import (
 
 // Upgrade command
 var UpgradeCmd = &cobra.Command{
-	Use: "upgrade [target]",
+	Use:   "upgrade [target]",
 	Short: "Run database migrations to a specific target",
-	Long: `Run database migrations to a specific target version. The target version is the number of steps or 'heads' to migrate to.`,
+	Long:  `Run database migrations to a specific target version. The target version is the number of steps or 'heads' to migrate to.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		target := args[0]
 		runUpgrade(target)
@@ -25,7 +26,6 @@ var UpgradeCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(UpgradeCmd)
 }
-
 
 // Run the migoration upgrade
 func runUpgrade(target string) {
@@ -82,7 +82,7 @@ func runUpgrade(target string) {
 	currentIndex := 0
 	for i, migration := range migrations {
 		if migration.Version == currentVersion {
-			currentIndex = i+1
+			currentIndex = i + 1
 			break
 		}
 	}
@@ -102,7 +102,7 @@ func runUpgrade(target string) {
 		if currentIndex+target > len(migrations) {
 			target = len(migrations) - currentIndex
 		}
-		migrationsToApply = migrations[currentIndex:currentIndex+target]
+		migrationsToApply = migrations[currentIndex : currentIndex+target]
 	}
 
 	// Apply the migrations
@@ -116,6 +116,3 @@ func runUpgrade(target string) {
 
 	fmt.Printf("Migrations applied successfully\n")
 }
-
-
-

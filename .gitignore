@@ -3,3 +3,6 @@ migrations/
 
 # Ignore config file
 migoration.yaml
+
+# Env files
+.env
