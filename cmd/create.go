@@ -21,7 +21,7 @@ var CreateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		if name == "" {
-			fmt.Println("Error: Migration name must be specified with the -m flag.")
+			fmt.Println("Error: Migration name must be specified with the -m flag and must not be empty.")
 			return
 		}
 		// Parse spaces in name into '_'
@@ -36,7 +36,7 @@ var CreateCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(CreateCmd)
 	// Save the flag in the migrationType variable
-	CreateCmd.Flags().StringVarP(&migrationType, "type", "t", "sql", "Type of migration file to create (sql or go)")
+	CreateCmd.Flags().StringVarP(&migrationType, "type", "t", "sql", "Type of migration file to create (sql)")
 
 	// Define -m flag for migration name
 	CreateCmd.Flags().StringP("name", "m", "", "Name of the migration")
@@ -63,10 +63,8 @@ func createMigration(name string, migrationType string) {
 	switch migrationType {
 	case "sql":
 		createSQLMigration(name, timestamp, migrations_dir)
-	case "go":
-		createSQLMigration(name, timestamp, migrations_dir) // TODO
 	default:
-		fmt.Printf("Error: Invalid migration type '%s'. Use 'sql' or 'go'\n", migrationType)
+		fmt.Printf("Error: Invalid migration type '%s'. Use 'sql'\n", migrationType)
 	}
 }
 

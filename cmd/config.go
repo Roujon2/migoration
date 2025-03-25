@@ -18,17 +18,29 @@ type Config struct {
 
 // Loads configuration from specific file
 func loadConfig(filename string) (*Config, error){
-	// Load the .env file
-	err := godotenv.Load(); if err != nil {
-		return nil, err
-	}
-
 	viper.SetConfigName(filename)
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 
 	// Read file
 	if err := viper.ReadInConfig(); err != nil {
+		return nil, err
+	}
+
+
+	// Fetch env file path 
+	envPath := viper.GetString("env_file")
+	if envPath == "" {
+		envPath = ".env"
+	}
+
+	// Check if the .env file exists at the given path
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf(".env file not found at '%s'", envPath)
+	}
+
+	// Load the env file
+	err := godotenv.Load(envPath); if err != nil {
 		return nil, err
 	}
 

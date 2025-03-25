@@ -48,6 +48,13 @@ func (m Migrations) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
+// Deep copy of migrations
+func (m Migrations) Copy() Migrations {
+	copied := make(Migrations, len(m))
+	copy(copied, m)
+	return copied
+}
+
 // Set up the migrations version table in the database
 func setupVersionTable(conn *pgx.Conn) error {
 	// Create the migrations table
@@ -95,9 +102,12 @@ func applyMigration(conn *pgx.Conn, migration *Migration, direction string, prev
 	}
 
 	if direction == "up" {
-		// Update the version table by removing any existing row and adding the current one
-		if _, err := conn.Exec(ctx, "DELETE FROM migoration_version WHERE version = $1", migration.Version); err != nil {
-			return fmt.Errorf("error deleting old migration version '%s': %v", migration.Version, err)
+		// If previous version is nil, assume we're at base
+		if previousVersion != nil {
+			// Update the version table by removing any existing row and adding the current one
+			if _, err := conn.Exec(ctx, "DELETE FROM migoration_version WHERE version = $1", previousVersion.Version); err != nil {
+				return fmt.Errorf("error deleting old migration version '%s': %v", migration.Version, err)
+			}
 		}
 		if _, err := conn.Exec(ctx, "INSERT INTO migoration_version (version, name) VALUES ($1, $2)", migration.Version, migration.Name); err != nil {
 			return fmt.Errorf("error updating migration version '%s': %v", migration.Version, err)

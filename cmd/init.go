@@ -60,7 +60,10 @@ func createConfig() string {
 	config := `# Migoration configuration file
 # Modify ${ENV_VAR} placeholders with actual environment variables or hardcode the values
 database_url: ${DATABASE_URL}
-migration_path: migrations`
+migration_path: migrations
+
+# Location of .env project file
+env_file: .env`
 
 	return config
 }

@@ -106,12 +106,18 @@ func runUpgrade(target string) {
 	}
 
 	// Apply the migrations
-	for _, migration := range migrationsToApply {
-		err := applyMigration(db, &migration, "up", nil)
+	var prev *Migration
+	if currentIndex > 0 {
+		prev = &migrations[currentIndex-1]
+	}
+	for i := range migrationsToApply {
+		migration := &migrationsToApply[i]
+		err := applyMigration(db, migration, "up", prev)
 		if err != nil {
 			fmt.Printf("Error applying migration '%s': %v\n", migration.Version, err)
 			return
 		}
+		prev = migration
 	}
 
 	fmt.Printf("Migrations applied successfully\n")

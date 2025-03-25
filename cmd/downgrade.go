@@ -97,7 +97,7 @@ func runDowngrade(target string) {
 	// Slice the migrations to apply
 	var migrationsToApply Migrations
 	if target == "base" {
-		migrationsToApply = migrations[:currentIndex+1]
+		migrationsToApply = migrations[:currentIndex+1].Copy()
 		// Flip the migrations to apply
 		sort.Sort(sort.Reverse(migrationsToApply))
 	} else {
@@ -107,11 +107,10 @@ func runDowngrade(target string) {
 			fmt.Printf("Target must be a number or 'base'\n")
 			return
 		}
-		// Cap the target to the base
-		if target > currentIndex {
-			target = currentIndex
-		}
-		migrationsToApply = migrations[currentIndex-target : currentIndex+1]
+		
+		start_index := max(0, currentIndex+1-target)
+
+		migrationsToApply = migrations[start_index : currentIndex+1].Copy()
 		// Flip the migrations to apply
 		sort.Sort(sort.Reverse(migrationsToApply))
 	}
@@ -121,10 +120,15 @@ func runDowngrade(target string) {
 
 		// Handle previous migration for tracking downgrade
 		var previousMigration *Migration
-		if i > 0 {
-			previousMigration = &migrationsToApply[i-1]
-		} else {
+
+		// Track original index in full migrations list
+		originalIndex := currentIndex - i
+
+		if originalIndex == 0 {
+			// Assume we're at base
 			previousMigration = nil
+		}else{
+			previousMigration = &migrations[originalIndex-1]
 		}
 
 		err := applyMigration(db, &migration, "down", previousMigration)
