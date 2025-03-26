@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -172,18 +171,8 @@ func getMigrations(migrationsDir string) (Migrations, error) {
 		migrations = append(migrations, migration)
 	}
 
-	// Sort the migrations by version (oldest to newest)
-	sort.Slice(migrations, func(i, j int) bool {
-		// Define the expected timestamp layout.
-		const layout = "20060102150405"
-		t1, err1 := time.Parse(layout, migrations[i].Version)
-		t2, err2 := time.Parse(layout, migrations[j].Version)
-		// Fallback to string comparison if parsing fails.
-		if err1 != nil || err2 != nil {
-			return migrations[i].Version < migrations[j].Version
-		}
-		return t1.Before(t2)
-	})
+	// Sort the migrations
+	sort.Sort(migrations)
 
 	return migrations, nil
 }
