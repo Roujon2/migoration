@@ -32,7 +32,7 @@ func init() {
 func runDowngrade(target string) {
 	// Check if it's a positive number
 	if _, err := strconv.Atoi(target); err != nil && target != "base" {
-		fmt.Printf("Error: Target must be a positive number or 'head'\n")
+		fmt.Printf("Error: Target must be a positive number or 'base'\n")
 		return
 	}
 
